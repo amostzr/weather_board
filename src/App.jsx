@@ -106,65 +106,82 @@ function FlyToPosition({ position }) {
 function LayerSwitcher({ activeLayerId, onSelect }) {
   const [expanded, setExpanded] = useState(false);
   const active = LAYERS.find((l) => l.id === activeLayerId) || LAYERS[0];
+  const containerRef = useRef(null);
+
+  // Touch devices don't fire mouseenter/mouseleave, so tapping outside
+  // is the only way to collapse the switcher once it's open.
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setExpanded(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [expanded]);
+
+  const handleSelect = (id) => {
+    onSelect(id);
+    setExpanded(false);
+  };
 
   return (
     <div
+      ref={containerRef}
       className="absolute bottom-8 left-6 z-[1000]"
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
     >
-      <div className={`flex gap-2 transition-all duration-300 ${expanded ? 'opacity-100' : 'opacity-100'}`}>
-        {LAYERS.map((layer) => (
-          <div
-            key={layer.id}
-            onClick={() => onSelect(layer.id)}
-            className="cursor-pointer flex flex-col items-center gap-1 group"
-          >
+      {expanded ? (
+        <div className="flex gap-2">
+          {LAYERS.map((layer) => (
             <div
-              className={`w-16 h-16 rounded-xl overflow-hidden border-3 shadow-xl transition-all duration-200
-                ${activeLayerId === layer.id
-                  ? 'border-[3px] border-blue-500 scale-105 ring-2 ring-blue-300'
-                  : 'border-[3px] border-white/70 hover:border-blue-300 hover:scale-105'
-                }
-                ${!expanded && activeLayerId !== layer.id ? 'hidden' : ''}
-              `}
+              key={layer.id}
+              onClick={() => handleSelect(layer.id)}
+              className="cursor-pointer flex flex-col items-center gap-1"
             >
-              <img
-                src={layer.thumb}
-                alt={layer.label}
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
+              <div
+                className={`w-16 h-16 rounded-xl overflow-hidden border-3 shadow-xl transition-all duration-200
+                  ${activeLayerId === layer.id
+                    ? 'border-[3px] border-blue-500 scale-105 ring-2 ring-blue-300'
+                    : 'border-[3px] border-white/70 hover:border-blue-300 hover:scale-105'
+                  }
+                `}
+              >
+                <img
+                  src={layer.thumb}
+                  alt={layer.label}
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
+              </div>
+              <span
+                className={`text-[10px] font-bold tracking-wide drop-shadow-lg transition-all
+                  ${activeLayerId === layer.id ? 'text-white' : 'text-white/80'}
+                `}
+              >
+                {layer.label}
+              </span>
             </div>
-            <span
-              className={`text-[10px] font-bold tracking-wide drop-shadow-lg transition-all
-                ${activeLayerId === layer.id ? 'text-white' : 'text-white/80'}
-                ${!expanded && activeLayerId !== layer.id ? 'hidden' : ''}
-              `}
-            >
-              {layer.label}
-            </span>
+          ))}
+        </div>
+      ) : (
+        <div
+          onClick={() => setExpanded(true)}
+          className="cursor-pointer flex flex-col items-center gap-1"
+        >
+          <div className="w-16 h-16 rounded-xl overflow-hidden border-[3px] border-white/70 shadow-xl hover:scale-105 transition-all duration-200">
+            <img
+              src={active.thumb}
+              alt="Switch map layer"
+              className="w-full h-full object-cover"
+              draggable={false}
+            />
           </div>
-        ))}
-
-        {/* When collapsed, still show the active tile with a hint icon */}
-        {!expanded && (
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-16 h-16 rounded-xl overflow-hidden border-[3px] border-white/70 shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer">
-              {/* Show the next layer as preview (Google Maps style) */}
-              <img
-                src={LAYERS[(LAYERS.findIndex((l) => l.id === activeLayerId) + 1) % LAYERS.length].thumb}
-                alt="Switch layer"
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            </div>
-            <span className="text-[10px] font-bold tracking-wide text-white/80 drop-shadow-lg">
-              {LAYERS[(LAYERS.findIndex((l) => l.id === activeLayerId) + 1) % LAYERS.length].label}
-            </span>
-          </div>
-        )}
-      </div>
+          <span className="text-[10px] font-bold tracking-wide text-white/80 drop-shadow-lg">
+            {active.label}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
