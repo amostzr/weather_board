@@ -127,7 +127,7 @@ function LayerSwitcher({ activeLayerId, onSelect }) {
   return (
     <div
       ref={containerRef}
-      className="absolute bottom-8 left-6 z-[1000]"
+      className="absolute z-[1000] top-20 left-3 sm:top-auto sm:bottom-8 sm:left-6"
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
     >
@@ -326,7 +326,7 @@ function SearchBar({ onResult }) {
   };
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-96 max-w-[90vw]">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1100] w-96 max-w-[90vw]">
       <div className="relative flex items-center bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/40">
         <Search className="absolute left-4 text-gray-400 shrink-0" size={18} />
         <input
@@ -383,7 +383,11 @@ function WeatherCard({ position, weather, loading, onClose }) {
   try { utmCoords = wgs84ToUtm36n(lat, lng); } catch { utmCoords = null; }
 
   return (
-    <div className="absolute top-20 left-6 z-[1000] bg-white/90 backdrop-blur-xl p-5 rounded-3xl shadow-2xl w-80 border border-white/30">
+    <div className="absolute z-[1000] bg-white/90 backdrop-blur-xl p-5 shadow-2xl border border-white/30
+      inset-x-3 bottom-3 rounded-3xl max-h-[65vh] overflow-y-auto
+      sm:inset-x-auto sm:bottom-auto sm:top-20 sm:left-6 sm:w-80 sm:max-h-none sm:overflow-visible">
+      {/* Bottom-sheet grab handle (mobile only) */}
+      <div className="sm:hidden mx-auto mb-3 h-1.5 w-10 rounded-full bg-gray-300/80" />
       <button
         onClick={onClose}
         className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
