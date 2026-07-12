@@ -90,10 +90,21 @@ function MapClickHandler({ setPosition }) {
 function FlyToPosition({ position }) {
   const map = useMap();
   useEffect(() => {
-    if (position) {
-      const lat = Array.isArray(position) ? position[0] : position.lat;
-      const lng = Array.isArray(position) ? position[1] : position.lng;
-      map.flyTo([lat, lng], Math.max(map.getZoom(), 10), { duration: 1.4 });
+    if (!position) return;
+    const lat = Array.isArray(position) ? position[0] : position.lat;
+    const lng = Array.isArray(position) ? position[1] : position.lng;
+    const targetZoom = Math.max(map.getZoom(), 10);
+    const latlng = L.latLng(lat, lng);
+
+    // On mobile the weather card is a bottom sheet, so a centered marker
+    // would sit underneath it. Shift the view down by ~half the sheet
+    // height so the pin lands in the visible strip above the sheet.
+    if (window.innerWidth < 640) {
+      const yOffset = window.innerHeight * 0.25;
+      const shifted = map.project(latlng, targetZoom).add([0, yOffset]);
+      map.flyTo(map.unproject(shifted, targetZoom), targetZoom, { duration: 1.4 });
+    } else {
+      map.flyTo(latlng, targetZoom, { duration: 1.4 });
     }
   }, [position, map]);
   return null;
@@ -384,7 +395,7 @@ function WeatherCard({ position, weather, loading, onClose }) {
 
   return (
     <div className="absolute z-[1000] bg-white/90 backdrop-blur-xl p-5 shadow-2xl border border-white/30
-      inset-x-3 bottom-3 rounded-3xl max-h-[65vh] overflow-y-auto
+      inset-x-3 bottom-3 rounded-3xl max-h-[50vh] overflow-y-auto
       sm:inset-x-auto sm:bottom-auto sm:top-20 sm:left-6 sm:w-80 sm:max-h-none sm:overflow-visible">
       {/* Bottom-sheet grab handle (mobile only) */}
       <div className="sm:hidden mx-auto mb-3 h-1.5 w-10 rounded-full bg-gray-300/80" />
