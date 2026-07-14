@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl, useMap } from 'react-leaflet';
 import { CloudRain, Wind, Droplets, Eye, Cloud, Loader2, X, AlertCircle, Search, Mountain, Navigation } from 'lucide-react';
 import L from 'leaflet';
@@ -93,18 +94,25 @@ function FlyToPosition({ position }) {
     if (!position) return;
     const lat = Array.isArray(position) ? position[0] : position.lat;
     const lng = Array.isArray(position) ? position[1] : position.lng;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     const targetZoom = Math.max(map.getZoom(), 10);
     const latlng = L.latLng(lat, lng);
 
-    // On mobile the weather card is a bottom sheet, so a centered marker
-    // would sit underneath it. Shift the view down by ~half the sheet
-    // height so the pin lands in the visible strip above the sheet.
-    if (window.innerWidth < 640) {
-      const yOffset = window.innerHeight * 0.25;
-      const shifted = map.project(latlng, targetZoom).add([0, yOffset]);
-      map.flyTo(map.unproject(shifted, targetZoom), targetZoom, { duration: 1.4 });
-    } else {
-      map.flyTo(latlng, targetZoom, { duration: 1.4 });
+    try {
+      // On mobile the weather card is a bottom sheet, so a centered marker
+      // would sit underneath it. Shift the view down by ~half the sheet
+      // height so the pin lands in the visible strip above the sheet.
+      if (window.innerWidth < 640) {
+        const yOffset = window.innerHeight * 0.25;
+        const shifted = map.project(latlng, targetZoom).add([0, yOffset]);
+        map.flyTo(map.unproject(shifted, targetZoom), targetZoom, { duration: 1.4 });
+      } else {
+        map.flyTo(latlng, targetZoom, { duration: 1.4 });
+      }
+    } catch {
+      // Map not fully ready or animation math failed — recenter without
+      // animating rather than letting the throw unmount the whole app.
+      try { map.setView(latlng, targetZoom); } catch { /* give up silently */ }
     }
   }, [position, map]);
   return null;
@@ -407,7 +415,10 @@ function WeatherCard({ position, weather, loading, onClose }) {
       </button>
 
       {/* ─── Info Modal ─────────────────────────────────────────────────── */}
-      {showInfo && (
+      {/* Portaled to <body> so it escapes this card's backdrop-filter, which
+          would otherwise act as the containing block and trap the fixed
+          overlay inside the (scrollable) bottom sheet on mobile. */}
+      {showInfo && createPortal(
         <div
           className="fixed inset-0 z-[2000] flex items-center justify-center p-4"
           onClick={() => setShowInfo(false)}
@@ -460,7 +471,8 @@ function WeatherCard({ position, weather, loading, onClose }) {
               <a href="https://open-meteo.com" target="_blank" rel="noreferrer" className="text-blue-500 text-xs font-semibold hover:underline">open-meteo.com ↗</a>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-200/50 pr-8">
